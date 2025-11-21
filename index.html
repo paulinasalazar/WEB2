@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Calendario de hábitos</title>
+  <style>
+    :root{
+      --bg: #0b1220;
+      --text: #e5e7eb;
+      --muted: #94a3b8;
+      --ring: #334155;
+      --ok: #22c55e;
+      --warn: #f59e0b;
+    }
+    *{box-sizing: border-box;}
+    html,body{height:100%;}
+    body{
+      margin:0;
+      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: radial-gradient(1200px 800px at 10% -10%, #1e293b 0, #0b1220 50%, #060b13 100%), var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    .container{max-width:1100px;margin:32px auto 80px;padding:0 16px;}
+    header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:20px;}
+    h1{font-size:24px;margin:0 auto;letter-spacing:0.3px;}
+    .sub{color:var(--muted);font-size:14px;margin-top:4px;}
+    .nav{display:flex;gap:8px;align-items:center;}
+    .btn{
+      background:#071122;
+      border:1px solid var(--ring);
+      padding:8px 12px;
+      border-radius:12px;
+      cursor:pointer;
+      transition:transform .05s ease, border-color .2s ease;
+      user-select:none;
+      color:var(--text);
+    }
+    .btn:hover{border-color:#475569;}
+    .calendar{
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
+      border:1px solid var(--ring);
+      border-radius:16px;
+      padding:16px;
+      box-shadow:0 10px 30px rgba(0,0,0,.35);
+    }
+    .weekdays, .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;}
+    .weekdays div{ text-align:center;color:var(--muted);font-size:12px;letter-spacing:.5px;text-transform:uppercase;}
+    .grid div{min-height:86px;}
+    .day{
+      border:1px solid var(--ring);
+      border-radius:14px;
+      aspect-ratio:1/1;
+      display:flex;
+      flex-direction:column;
+      align-items:flex-end;
+      justify-content:flex-start;
+      padding:8px;
+      position:relative;
+      cursor:pointer;
+      transition:border-color .2s ease, box-shadow .2s ease, transform .06s ease;
+      background: linear-gradient(180deg, rgba(255,255,255,.01), rgba(255,255,255,0));
+      color:var(--text);
+    }
+    .day:hover{border-color:#526581; box-shadow:0 6px 18px rgba(2,6,23,.35);}
+    .day.disabled{opacity:.3;cursor:default;}
+    .day-number{font-size:13px;margin-bottom:auto;}
+    .pill{position:absolute;bottom:8px;left:8px;display:inline-flex;gap:6px;}
+    .badge{width:8px;height:8px;border-radius:999px;border:1px solid var(--ring);background:#0b1220;}
+    .badge.ok{background:var(--ok);border-color:rgba(34,197,94,.45);}
+    .badge.warn{background:var(--warn);border-color:rgba(245,158,11,.45);}
+    .day.complete{ outline:2px solid rgba(34,197,94,.6); box-shadow:0 0 0 4px rgba(34,197,94,.12) inset; }
+    .legend{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:12px;margin-top:10px;}
+    .legend .item{display:flex;gap:6px;align-items:center;}
+    /* Modal */
+    .modal-backdrop{ position:fixed; inset:0; background:rgba(2,6,23,.7); display:none; align-items:center; justify-content:center; padding:16px; z-index:50;}
+    .modal-backdrop.show{display:flex;}
+    .modal{width:100%;max-width:720px;background:#0b1220;border:1px solid var(--ring);border-radius:16px;box-shadow:0 24px 60px rgba(0,0,0,.5);padding:16px;color:var(--text);}
+    .modal header{margin-bottom:10px;}
+    .modal h2{margin:0;font-size:18px;}
+    .section{border-top:1px solid var(--ring);padding:14px 0;}
+    .section:first-of-type{border-top:0;}
+    .section h3{margin:0 0 10px 0;font-size:14px;color:var(--muted);text-transform:uppercase;letter-spacing:.7px;}
+    .row{display:flex;flex-wrap:wrap;gap:10px 16px;align-items:center;}
+    .chk{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--ring);border-radius:12px;cursor:pointer;transition:border-color .2s ease, background .2s ease;user-select:none;color:var(--text);}
+    .chk:hover{border-color:#526581;}
+    .chk input[type="checkbox"]{width:18px;height:18px;accent-color:var(--ok);}
+    .chk.done{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.45);}
+    .grid-mini{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;width:100%;max-width:420px;}
+    .dot{width:36px;height:36px;border-radius:10px;display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--ring);cursor:pointer;font-size:14px;color:var(--muted);background:transparent;transition:background .2s ease,border-color .2s ease;}
+    .dot.on{background:rgba(34,197,94,.16);border-color:rgba(34,197,94,.45);color:#d1fae5;}
+    .foot{display:flex;justify-content:space-between;gap:8px;margin-top:10px;}
+    .link{color:var(--muted);text-decoration:none;}
+    @media (max-width:600px){
+      .grid div{min-height:74px;}
+      .dot{width:32px;height:32px;}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>Calendario</h1>
+        <div class="sub">Marca tus hábitos diarios</div>
+      </div>
+      <div class="nav">
+        <button class="btn" id="prevMonth" aria-label="Mes anterior">◀</button>
+        <div id="monthLabel" class="sub" style="min-width:160px;text-align:center"></div>
+        <button class="btn" id="nextMonth" aria-label="Mes siguiente">▶</button>
+      </div>
+    </header>
+
+    <div class="calendar">
+      <div class="weekdays">
+        <div>Lun</div><div>Mar</div><div>Mié</div><div>Jue</div><div>Vie</div><div>Sáb</div><div>Dom</div>
+      </div>
+      <div class="grid" id="calendarGrid" style="margin-top:10px;"></div>
+      <div class="legend" style="margin-top:12px;">
+        <div class="item"><span class="badge ok"></span> Completado</div>
+        <div class="item"><span class="badge warn"></span> Parcial (suplementos)</div>
+      </div>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal-backdrop" id="modal">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+        <header>
+          <h2 id="modalTitle">Día</h2>
+        </header>
+
+        <div class="section" id="sec-dieta">
+          <h3>Dieta</h3>
+
+          <div style="margin-bottom:10px;">
+            <div class="sub" style="margin-bottom:6px">Cereales</div>
+            <div class="grid-mini" id="cerealesDots" style="grid-template-columns:repeat(5,1fr)"></div>
+          </div>
+
+          <div style="margin-bottom:10px;">
+            <div class="sub" style="margin-bottom:6px">Carnes</div>
+            <div class="grid-mini" id="carnesDots" style="grid-template-columns:repeat(7,1fr)"></div>
+          </div>
+
+          <div style="margin-bottom:10px;">
+            <div class="sub" style="margin-bottom:6px">Grasas</div>
+            <div class="grid-mini" id="grasasDots" style="grid-template-columns:repeat(5,1fr)"></div>
+          </div>
+
+          <div style="margin-bottom:10px;">
+            <div class="sub" style="margin-bottom:6px">Verduras</div>
+            <div class="grid-mini" id="verdurasDots" style="grid-template-columns:repeat(4,1fr)"></div>
+          </div>
+
+          <div style="margin-bottom:6px;">
+            <div class="sub" style="margin-bottom:6px">Azúcares</div>
+            <div class="grid-mini" id="azucarDots" style="grid-template-columns:repeat(2,1fr)"></div>
+          </div>
+        </div>
+
+        <div class="section" id="sec-sup">
+          <h3>Suplementos</h3>
+          <div class="row">
+            <label class="chk" id="vitLabel"><input type="checkbox" id="vitChk" /> <span>Vitaminas</span></label>
+            <label class="chk" id="creLabel"><input type="checkbox" id="creChk" /> <span>Creatina</span></label>
+            <label class="chk" id="proLabel"><input type="checkbox" id="proChk" /> <span>Proteína</span></label>
+          </div>
+        </div>
+
+        <div class="section" id="sec-ej">
+          <h3>Ejercicio</h3>
+          <label class="chk" id="ejLabel"><input type="checkbox" id="ejercicioChk" /> <span>Realicé ejercicio</span></label>
+        </div>
+
+        <div class="section" id="sec-hid">
+          <h3>Hidratación</h3>
+          <label class="chk" id="hidLabel"><input type="checkbox" id="hidChk" /> <span>Hidratado</span></label>
+        </div>
+
+        <div class="foot">
+          <div>
+            <button class="btn" id="closeBtn">Guardar y cerrar</button>
+            <button class="btn" id="clearDay">Borrar día</button>
+          </div>
+          <div style="align-self:center;color:var(--muted);font-size:13px" id="saveInfo"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    /* Utilidades de fecha */
+    const pad = n => String(n).padStart(2, '0');
+    const ymd = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+    const monthNames = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+    // Comienzo del mes mostrado
+    let current = new Date();
+    current.setDate(1);
+
+    const calendarGrid = document.getElementById('calendarGrid');
+    const monthLabel = document.getElementById('monthLabel');
+
+    // Default por día
+    function defaultDay(){
+      return {
+        ejercicio: false,
+        suplementos: { vitaminas: false, creatina: false, proteina: false },
+        dieta: {
+          cereales: [false,false,false,false,false], // 5
+          carnes:   [false,false,false,false,false,false,false], // 7
+          grasas:   [false,false,false,false,false], // 5
+          verduras: [false,false,false,false], // 4
+          azucar:   [false,false] // 2
+        },
+        hidratacion: false,
+        updatedAt: null
+      };
+    }
+
+    function storageKey(key){ return 'habit:' + key; }
+    function loadDay(key){
+      const raw = localStorage.getItem(storageKey(key));
+      return raw ? JSON.parse(raw) : defaultDay();
+    }
+    function saveDay(key, data){
+      data.updatedAt = new Date().toISOString();
+      localStorage.setItem(storageKey(key), JSON.stringify(data));
+    }
+    function clearDay(key){
+      localStorage.removeItem(storageKey(key));
+    }
+
+    function isCompleteDay(state){
+      const sup = state.suplementos;
+      const suplementosOk = sup.vitaminas && sup.creatina && sup.proteina;
+      return state.ejercicio && suplementosOk && state.hidratacion;
+    }
+
+    // weekdayOffset: ajusta para que la semana empiece en Lunes
+    function weekdayOffset(jsDay){ // jsDay: 0 = domingo ... 6 = sabado
+      // Queremos 0 = lunes ... 6 = domingo
+      // Si jsDay == 0 (domingo) -> offset 6
+      // Si jsDay == 1 (lunes) -> offset 0
+      return (jsDay + 6) % 7;
+    }
+
+    function renderMonth(){
+      const y = current.getFullYear();
+      const m = current.getMonth();
+      monthLabel.textContent = `${monthNames[m]} ${y}`;
+      calendarGrid.innerHTML = '';
+
+      const first = new Date(y,m,1);
+      const last = new Date(y,m+1,0);
+      const blanks = weekdayOffset(first.getDay());
+
+      for(let i=0;i<blanks;i++){
+        const div = document.createElement('div');
+        calendarGrid.appendChild(div);
+      }
+
+      for(let d=1; d<=last.getDate(); d++){
+        const date = new Date(y,m,d);
+        const key = ymd(date);
+        const cell = document.createElement('button');
+        cell.className = 'day';
+        cell.type = 'button';
+        cell.setAttribute('data-key', key);
+        cell.innerHTML = `
+          <div class="day-number">${d}</div>
+          <div class="pill">
+            <span class="badge" data-badge="ej" title="Ejercicio"></span>
+            <span class="badge" data-badge="sup" title="Suplementos"></span>
+            <span class="badge" data-badge="hid" title="Hidratación"></span>
+          </div>
+        `;
+
+        const state = loadDay(key);
+
+        // Badges
+        const ejBadge = cell.querySelector('[data-badge="ej"]');
+        const supBadge = cell.querySelector('[data-badge="sup"]');
+        const hidBadge = cell.querySelector('[data-badge="hid"]');
+
+        if(state.ejercicio) ejBadge.classList.add('ok'); else ejBadge.classList.remove('ok');
+        const allSup = state.suplementos.vitaminas && state.suplementos.creatina && state.suplementos.proteina;
+        const someSup = state.suplementos.vitaminas || state.suplementos.creatina || state.suplementos.proteina;
+        supBadge.classList.toggle('ok', allSup);
+        supBadge.classList.toggle('warn', someSup && !allSup);
+        supBadge.classList.toggle('warn', !allSup && someSup);
+        if(state.hidratacion) hidBadge.classList.add('ok'); else hidBadge.classList.remove('ok');
+
+        if(isCompleteDay(state)) cell.classList.add('complete'); else cell.classList.remove('complete');
+
+        cell.addEventListener('click', () => openDayModal(key));
+        calendarGrid.appendChild(cell);
+      }
+    }
+
+    // Navegación de meses
+    document.getElementById('prevMonth').addEventListener('click', ()=>{
+      current.setMonth(current.getMonth() - 1);
+      renderMonth();
+    });
+    document.getElementById('nextMonth').addEventListener('click', ()=>{
+      current.setMonth(current.getMonth() + 1);
+      renderMonth();
+    });
+
+    /* Modal y elementos */
+    const modal = document.getElementById('modal');
+    const modalTitle = document.getElementById('modalTitle');
+    const closeBtn = document.getElementById('closeBtn');
+    const clearDayBtn = document.getElementById('clearDay');
+    const saveInfo = document.getElementById('saveInfo');
+
+    // Checkboxes
+    const ejercicioChk = document.getElementById('ejercicioChk');
+    const vitChk = document.getElementById('vitChk');
+    const creChk = document.getElementById('creChk');
+    const proChk = document.getElementById('proChk');
+    const hidChk = document.getElementById('hidChk');
+
+    // Labels for styling
+    const ejLabel = document.getElementById('ejLabel');
+    const vitLabel = document.getElementById('vitLabel');
+    const creLabel = document.getElementById('creLabel');
+    const proLabel = document.getElementById('proLabel');
+    const hidLabel = document.getElementById('hidLabel');
+
+    // Contenedores dots
+    const cerealesDots = document.getElementById('cerealesDots');
+    const carnesDots = document.getElementById('carnesDots');
+    const grasasDots = document.getElementById('grasasDots');
+    const verdurasDots = document.getElementById('verdurasDots');
+    const azucarDots = document.getElementById('azucarDots');
+
+    // Build dynamic dot buttons
+    function buildDots(container, count){
+      container.innerHTML = '';
+      for(let i=0;i<count;i++){
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'dot';
+        b.dataset.idx = i;
+        b.textContent = (i+1);
+        container.appendChild(b);
+      }
+    }
+
+    buildDots(cerealesDots, 5); // cereales 5
+    buildDots(carnesDots, 7);   // carnes 7
+    buildDots(grasasDots, 5);   // grasas 5
+    buildDots(verdurasDots, 4); // verduras 4
+    buildDots(azucarDots, 2);   // azucar 2
+
+    // Variables temporales del día abierto
+    let selectedKey = null;
+    let selectedState = null;
+
+    // Sincronizar estilos de chips
+    function syncLabelStyles(){
+      ejLabel && ejLabel.classList.toggle('done', !!selectedState.ejercicio);
+      vitLabel && vitLabel.classList.toggle('done', !!selectedState.suplementos.vitaminas);
+      creLabel && creLabel.classList.toggle('done', !!selectedState.suplementos.creatina);
+      proLabel && proLabel.classList.toggle('done', !!selectedState.suplementos.proteina);
+      hidLabel && hidLabel.classList.toggle('done', !!selectedState.hidratacion);
+    }
+
+    function updateDotsFromState(){
+      [...cerealesDots.children].forEach((el,i)=> el.classList.toggle('on', !!selectedState.dieta.cereales[i]));
+      [...carnesDots.children].forEach((el,i)=> el.classList.toggle('on', !!selectedState.dieta.carnes[i]));
+      [...grasasDots.children].forEach((el,i)=> el.classList.toggle('on', !!selectedState.dieta.grasas[i]));
+      [...verdurasDots.children].forEach((el,i)=> el.classList.toggle('on', !!selectedState.dieta.verduras[i]));
+      [...azucarDots.children].forEach((el,i)=> el.classList.toggle('on', !!selectedState.dieta.azucar[i]));
+    }
+
+    // Cuando el usuario hace click en una dot
+    function attachDotHandlers(){
+      const map = [
+        {container: cerealesDots, keyPath: ['dieta','cereales']},
+        {container: carnesDots, keyPath: ['dieta','carnes']},
+        {container: grasasDots, keyPath: ['dieta','grasas']},
+        {container: verdurasDots, keyPath: ['dieta','verduras']},
+        {container: azucarDots, keyPath: ['dieta','azucar']}
+      ];
+      map.forEach(entry=>{
+        [...entry.container.children].forEach(button=>{
+          button.onclick = () => {
+            const idx = Number(button.dataset.idx);
+            const arr = entry.keyPath.reduce((o,k)=>o[k], selectedState);
+            arr[idx] = !arr[idx];
+            button.classList.toggle('on', arr[idx]);
+            saveInfo.textContent = 'Cambios sin guardar';
+          };
+        });
+      });
+    }
+    attachDotHandlers();
+
+    // Handlers para checkboxes de suplementos/ejercicio/hidratacion
+    [ejercicioChk, vitChk, creChk, proChk, hidChk].forEach(chk=>{
+      chk && (chk.onchange = () => {
+        if(!selectedState) return;
+        selectedState.ejercicio = ejercicioChk.checked;
+        selectedState.suplementos.vitaminas = vitChk.checked;
+        selectedState.suplementos.creatina = creChk.checked;
+        selectedState.suplementos.proteina = proChk.checked;
+        selectedState.hidratacion = hidChk.checked;
+        syncLabelStyles();
+        saveInfo.textContent = 'Cambios sin guardar';
+      });
+    });
+
+    // Abre modal para la clave (YYYY-MM-DD)
+    function openDayModal(key){
+      selectedKey = key;
+      selectedState = loadDay(key);
+      const date = new Date(key + 'T00:00:00');
+      modalTitle.textContent = date.toLocaleDateString('es-ES', { weekday:'long', day:'2-digit', month:'long', year:'numeric' });
+      // sincronizar checks
+      ejercicioChk.checked = !!selectedState.ejercicio;
+      vitChk.checked = !!selectedState.suplementos.vitaminas;
+      creChk.checked = !!selectedState.suplementos.creatina;
+      proChk.checked = !!selectedState.suplementos.proteina;
+      hidChk.checked = !!selectedState.hidratacion;
+      syncLabelStyles();
+      updateDotsFromState();
+      saveInfo.textContent = '';
+      modal.classList.add('show');
+      // permitir cerrar con ESC
+      document.addEventListener('keydown', escHandler);
+    }
+
+    function escHandler(e){ if(e.key === 'Escape') closeModal(); }
+
+    function closeModal(){
+      modal.classList.remove('show');
+      document.removeEventListener('keydown', escHandler);
+      selectedKey = null;
+      selectedState = null;
+    }
+
+    // Guardar estado actual en localStorage y refrescar mes
+    function guardarYActualizar(){
+      if(!selectedKey || !selectedState) return;
+      saveDay(selectedKey, selectedState);
+      renderMonth();
+      saveInfo.textContent = 'Guardado';
+      setTimeout(()=>saveInfo.textContent='', 1200);
+      closeModal();
+    }
+
+    closeBtn.addEventListener('click', guardarYActualizar);
+
+    // Borrar día
+    clearDayBtn.addEventListener('click', ()=>{
+      if(!selectedKey) return;
+      if(confirm('¿Borrar todos los datos de este día?')) {
+        clearDay(selectedKey);
+        renderMonth();
+        closeModal();
+      }
+    });
+
+    // Cuando hacemos click fuera del modal cerramos y descartamos cambios
+    document.getElementById('modal').addEventListener('click', (e)=>{
+      if(e.target === e.currentTarget){
+        // preguntar si hay cambios no guardados
+        if(saveInfo.textContent === 'Cambios sin guardar'){
+          if(confirm('Hay cambios sin guardar. ¿Cerrar sin guardar?')) closeModal();
+        } else closeModal();
+      }
+    });
+
+    // Iniciar
+    renderMonth();
+  </script>
+</body>
+</html> 
